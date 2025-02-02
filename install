@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+function check_code() {
+    set -x; 
+
+    if $1;
+    then
+        echo Success: $2
+    else
+        echo ERROR: Failed $2 1>&2
+        exit 1
+    fi
+
+    set +x;
+}
+
+echo -e "\n\n Updating enviroment... \n" 
+
+sudo apt-get update && sudo apt-get -y -q upgrade
+sudo apt-get -y -q dist-upgrade
+
+echo -e "\n\n Installing required packages ... \n" 
+sudo apt-get update
+
+sudo apt-get install -y -q curl wget nano 2> /dev/null
+
+echo -e "\n\n Installing Docker required packages  ... \n"
+
+sudo apt-get remove containerd.io -y 2> /dev/null
+
+check_code "sudo apt-get install -y -q docker.io" "Installing Docker"
+
+check_code "sudo docker run hello-world" "Testing Docker"
+
+sudo groupadd docker 2> /dev/null
+
+sudo gpasswd -a $USER docker && sudo usermod -aG docker $USER
+
+/usr/bin/newgrp docker <<EONG
+
+sudo service docker restart
+
+echo -e "\n\n  Verifying  Docker  ... \n"
+docker run hello-world
+
+EONG
+
+echo -e "\n\n Enabling IPv6 Functionality for Docker  ... \n"
+
+echo -e "Creating /etc/docker/daemon.json ... \n"
+
+sudo touch /etc/docker/daemon.json
+
+printf '%s\n  %s\n  %s\n  %s\n%s' '{' '"ipv6": true,' '"fixed-cidr-v6": "2001:db8:1::/64",' '"experimental": true' '}' | sudo tee /etc/docker/daemon.json >> /dev/null
+
+echo -e "\n\n Enabling buildx Functionality for Docker  ... \n"
+
+check_code "sudo apt-get install -y qemu-user-static" "Installing Required Tools"
+
+sudo apt-get install -y -q binfmt-support 2> /dev/null
+
+check_code "qemu-x86_64-static --version" "Testing Support for Different Architectures"
+
+echo -e "\n\n Installing Docker buildx  ... \n"
+
+sudo apt-get install docker-buildx -y -q 2> /dev/null
+
+sudo service docker restart 2> /dev/null
+
+check_code "sudo docker buildx ls" "Checking Docker Buildx"
+
+echo -e "\n\n Everything is installed successfully  ... \n"
+
+GREEN='\033[0;32m'
+echo -e "\n\n  ${GREEN}Please reboot now  ... \n"
