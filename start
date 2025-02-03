@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# Check if a directory name was provided
+if [ -z "$1" ]; then
+  echo "Usage: $0 <directory-name>"
+  exit 1
+fi
+
+# Concatenate the current working directory with the provided directory name
+folder="$(pwd)/$1"
+
+# Check if the folder exists
+if [ ! -d "$folder" ]; then
+  echo "Error: The directory '$folder' does not exist."
+  exit 1
+fi
+
+# Check if a container named 'my_environment' is already running or exists, and remove it if found
+if docker ps -a --format '{{.Names}}' | grep -Eq "^my_environment\$"; then
+  echo "Container 'my_environment' exists. Removing it..."
+  docker rm -f my_environment
+fi
+
+# Build the Docker image for the AMD64 platform using BuildKit
+DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64 -f .Dockerfile -t my_environment .
+
+# Run the Docker container interactively with the specified volume mount, working directory,
+# and run it as the current host user so that file permissions are preserved
+docker run --platform linux/amd64 \
+  -it \
+  -v "$folder":/$1/ \
+  -w /$1 \
+  -u "$(id -u):$(id -g)" \
+  --restart=always \
+  --sysctl net.ipv6.conf.all.disable_ipv6=0 \
+  --privileged \
+  --net=none \
+  --name my_environment \
+my_environment bash
