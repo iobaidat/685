@@ -69,6 +69,11 @@ sudo service docker restart 2> /dev/null
 
 check_code "sudo docker buildx ls" "Checking Docker Buildx"
 
+cd ~ && curl -sOL https://github.com/iobaidat/685/raw/refs/heads/main/.Dockerfile 2> /dev/null
+cd ~ && curl -sOL https://github.com/iobaidat/685/raw/refs/heads/main/start 2> /dev/null
+
+cd ~ && sudo chmod 777 start 2> /dev/null
+
 echo -e "\n\n Everything is installed successfully  ... \n"
 
 GREEN='\033[0;32m'
